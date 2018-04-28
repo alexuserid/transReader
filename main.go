@@ -23,7 +23,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println("json.Marshal: ", err)
 	}
-	fmt.Fprintf(w, "%v\n", j)
+	w.Write(j)
 }
 
 
