@@ -2,8 +2,8 @@ package main
 
 import (
 	"compress/gzip"
-	"encoding/json"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -13,7 +13,7 @@ import (
 
 type bt struct {
 	Block uint32
-	Tr uint16
+	Tr    uint16
 }
 type key [32]byte
 
@@ -40,7 +40,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("\n"))
 }
 
-
 func main() {
 	f, err := os.Open("tr.txt.gz")
 	if err != nil {
@@ -55,7 +54,7 @@ func main() {
 
 	var (
 		kk key
-		k string
+		k  string
 		v1 uint32
 		v2 uint16
 	)
@@ -65,7 +64,7 @@ func main() {
 		if err == io.EOF {
 			break
 		}
-		if err != nil  {
+		if err != nil {
 			log.Fatalf("fmt.Fscanln: %v", err)
 		}
 		hk, err := hex.DecodeString(k)
