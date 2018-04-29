@@ -1,18 +1,18 @@
 package main
 
 import (
-//	"archive/zip"
+	"archive/tar"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"net/http"
-//	"strings"
 )
 
 type bt struct {
-	block string
-	tr string
+	Block string
+	Tr string
 }
 
 var m = make(map[string]bt)
@@ -22,18 +22,26 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	j, err := json.Marshal(m[trans])
 	if err != nil {
 		fmt.Println("json.Marshal: ", err)
+		return
 	}
 	w.Write(j)
 }
 
 
 func main() {
-	reader, err := ioutil.ReadFile("tr")
+	f, err := os.Open("tr.txt.gz")
 	if err != nil {
-		fmt.Println("ioutil.Readfile: ", err)
+		fmt.Println("os.Open: ", err)
+	}
+	defer f.Close()
+
+	tr := tar.NewReader(f)
+	b, err := ioutil.ReadAll(tr)
+	if err != nil {
+		fmt.Println("ioutil.ReadAll: ", err)
 	}
 
-	fieldsB := bytes.Fields(reader)
+	fieldsB := bytes.Fields(b)
 	for i:=0; i<len(fieldsB); i+=3 {
 		m[string(fieldsB[i])] = bt{string(fieldsB[i+1]), string(fieldsB[i+2])}
 	}
