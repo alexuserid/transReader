@@ -36,6 +36,7 @@ func main() {
 	defer f.Close()
 
 	tr := tar.NewReader(f)
+
 	b, err := ioutil.ReadAll(tr)
 	if err != nil {
 		fmt.Println("ioutil.ReadAll: ", err)
