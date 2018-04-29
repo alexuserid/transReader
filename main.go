@@ -1,25 +1,27 @@
 package main
 
 import (
-	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"net/http"
 )
 
 type bt struct {
-	Block string
-	Tr string
+	Block uint32
+	Tr uint16
+}
+type b32 struct {
+	bs []byte
 }
 
-var m = make(map[string]bt)
+var m = make(map[b32]bt)
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	trans := r.URL.Query().Get("t")
-	j, err := json.Marshal(m[trans])
+	var x = b32{[]byte(trans)}
+	j, err := json.Marshal(m[x])
 	if err != nil {
 		fmt.Println("json.Marshal: ", err)
 		return
@@ -41,15 +43,21 @@ func main() {
 		fmt.Println("gzip.NewReader: ", err)
 	}
 
-	b, err := ioutil.ReadAll(gz)
-	if err != nil {
-		fmt.Println("ioutil.ReadAll: ", err)
-	}
+	var (
+		k b32
+		v1 uint32
+		v2 uint16
+	)
 
-	fieldsB := bytes.Fields(b)
-	for i:=0; i<len(fieldsB); i+=3 {
-		m[string(fieldsB[i])] = bt{string(fieldsB[i+1]), string(fieldsB[i+2])}
+	for {
+		_, err := fmt.Fscanln(gz, &k, &v1, &v2)
+		if err != nil {
+			fmt.Println("fmt.Fscanln: ", err)
+			break
+		}
+		m[k] = bt{v1, v2}
 	}
+	fmt.Println(m)
 
 	http.HandleFunc("/", handler)
 	http.ListenAndServe(":8080", nil)
