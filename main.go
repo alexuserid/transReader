@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"encoding/hex"
 	"fmt"
-	"os"
+	"io"
+	"log"
 	"net/http"
+	"os"
 )
 
 type bt struct {
@@ -21,31 +23,34 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	trans := r.URL.Query().Get("t")
 	hTrans, err := hex.DecodeString(trans)
 	if err != nil {
-		fmt.Println("hex.DecodeString: ", err)
+		log.Fatalf("hex.DecodeString: %v", err)
 	}
 	var k key
 	copy(k[:], hTrans)
 
-	j, err := json.Marshal(m[k])
-	if err != nil {
-		fmt.Println("json.Marshal: ", err)
+	v, ok := m[k]
+	if !ok {
+		w.Write([]byte("Wrong key\n"))
 		return
 	}
-	j = append(j, '\n')
-	w.Write(j)
+	err = json.NewEncoder(w).Encode(v)
+	if err != nil {
+		log.Fatalf("json.Encode: %v", err)
+	}
+	w.Write([]byte("\n"))
 }
 
 
 func main() {
 	f, err := os.Open("tr.txt.gz")
 	if err != nil {
-		fmt.Println("os.Open: ", err)
+		log.Fatalf("os.Open: %v", err)
 	}
 	defer f.Close()
 
 	gz, err := gzip.NewReader(f)
 	if err != nil {
-		fmt.Println("gzip.NewReader: ", err)
+		log.Fatalf("gzip.NewReader: %v", err)
 	}
 
 	var (
@@ -57,13 +62,15 @@ func main() {
 
 	for {
 		_, err := fmt.Fscanln(gz, &k, &v1, &v2)
-		if err != nil {
-			fmt.Println("fmt.Fscanln: ", err)
+		if err == io.EOF {
 			break
+		}
+		if err != nil  {
+			log.Fatalf("fmt.Fscanln: %v", err)
 		}
 		hk, err := hex.DecodeString(k)
 		if err != nil {
-			fmt.Println("hex.Decode: ", err)
+			log.Fatalf("hex.Decode: %v", err)
 		}
 		copy(kk[:], hk)
 		m[kk] = bt{v1, v2}
