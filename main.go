@@ -1,8 +1,8 @@
 package main
 
 import (
-	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -24,6 +24,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("json.Marshal: ", err)
 		return
 	}
+	j = append(j, '\n')
 	w.Write(j)
 }
 
@@ -35,9 +36,12 @@ func main() {
 	}
 	defer f.Close()
 
-	tr := tar.NewReader(f)
+	gz, err := gzip.NewReader(f)
+	if err != nil {
+		fmt.Println("gzip.NewReader: ", err)
+	}
 
-	b, err := ioutil.ReadAll(tr)
+	b, err := ioutil.ReadAll(gz)
 	if err != nil {
 		fmt.Println("ioutil.ReadAll: ", err)
 	}
