@@ -21,10 +21,7 @@ var m = make(map[key]bt)
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	trans := r.URL.Query().Get("t")
-	hTrans, err := hex.DecodeString(trans)
-	if err != nil {
-		log.Fatalf("hex.DecodeString: %v", err)
-	}
+	hTrans, _ := hex.DecodeString(trans)
 	var k key
 	copy(k[:], hTrans)
 
@@ -33,7 +30,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Wrong key\n"))
 		return
 	}
-	err = json.NewEncoder(w).Encode(v)
+	err := json.NewEncoder(w).Encode(v)
 	if err != nil {
 		log.Fatalf("json.Encode: %v", err)
 	}

@@ -18,13 +18,13 @@ var (
 
 func main() {
 	flag.Parse()
-	timeout := time.NewTimer(*dur)
-	var i, rps int
+	timer := time.NewTimer(*dur)
+	var i float64
 
 	for {
 		select {
-		case <-timeout.C:
-			fmt.Println("Timeout. Test was repeated %d times. Duration %v. %vrps.\n", i, *dur, float64(rps)/dur.Seconds())
+		case <-timer.C:
+			fmt.Printf("Timeout. Test was repeated %g times. Duration %v. %vrps.\n", i, *dur, i/dur.Seconds())
 			return
 		default:
 			for j, v := range mass {
@@ -38,15 +38,13 @@ func main() {
 					log.Fatalf("ioutil.ReadAll: %v", err)
 				}
 
-				ans := strings.TrimFunc(string(by), func(r rune) bool {
-					return !unicode.IsNumber(r) && !unicode.IsSpace(r)
+				trims := strings.TrimFunc(string(by), func(r rune) bool {
+					return !unicode.IsNumber(r)
 				})
-				if fi := strings.Fields(ans); fi[0] != v.v1 || fi[1] != v.v2 && v.v1 != "wa" {
-					if !timeout.Stop() {
-						to := <-timeout.C
-						fmt.Printf("Wrong answer after %v.\nTest %d: %q.\nServer answer is: %q.\nRight answer is: %q.\n", to, j, v.v1, string(by), v.v2)
-						return
-					}
+				sp := strings.Split(trims, `,"Tr":`)
+				if (sp[0] != v.v1 || sp[1] != v.v2) && v.v1 != "wa" {
+					fmt.Printf("Wrong answer.\nTest %d: %q.\nServer answer is: %q.\nRight answer is: %q.\n", j, v.v1, string(by), v.v2)
+					return
 				}
 				i++
 			}
