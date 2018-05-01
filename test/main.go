@@ -1,31 +1,31 @@
 package main
 
 import (
+	"compress/gzip"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"log"
-	"net/http"
-	"time"
-	"os"
 	"math/rand"
-	"compress/gzip"
-	"encoding/json"
+	"net/http"
+	"os"
+	"time"
 )
 
 var (
-	addr = flag.String("address", "http://localhost:8080", "Server address for test")
-	dur  = flag.Duration("duration", 5*time.Second, "Test duration")
+	addr     = flag.String("address", "http://localhost:8080", "Server address for test")
+	dur      = flag.Duration("duration", 5*time.Second, "Test duration")
 	testFile = flag.String("test", "../tr.txt.gz", "Test file")
-	n = flag.Int("number", 10, "Test items number")
+	n        = flag.Int("number", 10, "Test items number")
 )
 
 type st struct {
-	k string
+	k      string
 	v1, v2 int
 }
 type bt struct {
-	Block,Tr int
+	Block, Tr int
 }
 
 func shuf(n *int, testFile *string) []st {
@@ -41,9 +41,9 @@ func shuf(n *int, testFile *string) []st {
 	}
 
 	var (
-		key string
+		key              string
 		val1, val2, i, j int
-		randMass []st
+		randMass         []st
 	)
 	for {
 		_, err := fmt.Fscanln(gzReader, &key, &val1, &val2)
