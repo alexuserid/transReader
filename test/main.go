@@ -29,12 +29,11 @@ var (
 	n        = flag.Int("number", 10, "Test items number")
 )
 
-
 func RASample(gzReader *gzip.Reader, n *int) ([]st, error) {
 	var (
-		key string
+		key              string
 		val1, val2, i, j int
-		arr []st
+		arr              []st
 	)
 	for {
 		_, err := fmt.Fscanln(gzReader, &key, &val1, &val2)
@@ -90,11 +89,12 @@ func main() {
 	log.Printf("Timer for %v is setted. Testing...\n", *dur)
 
 	var i int
+	var dec bt
 	for {
-		fmt.Print("\r", i, "r")
+		fmt.Print(i, "\r")
 		select {
 		case <-timer.C:
-			fmt.Println(i, "requests")
+			fmt.Print(i, " requests\n")
 			fmt.Printf("Timeout. Duration %v. %vrps.\n", *dur, float64(i)/dur.Seconds())
 			return
 		default:
@@ -104,7 +104,6 @@ func main() {
 					log.Fatalf("http.Get: %v", err)
 				}
 
-				var dec bt
 				err = json.NewDecoder(resp.Body).Decode(&dec)
 				if err != nil && resp.StatusCode != v.status {
 					fmt.Printf("Wrong answer.\nTest %d: %q.\nServer answer is %q.\nTest answer is: %q.\n", j, v.v1, dec, http.StatusText(v.status))

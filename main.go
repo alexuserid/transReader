@@ -20,8 +20,8 @@ type key [32]byte
 
 var (
 	transMap = make(map[key]bt)
-	port = flag.String("port", ":8080", "Server port")
-	file = flag.String("file", "tr.txt.gz", "File with transactions in .gzip format")
+	port     = flag.String("port", ":8080", "Server port")
+	file     = flag.String("file", "tr.txt.gz", "File with transactions in .gzip format")
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +42,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 	err = json.NewEncoder(w).Encode(v)
 	if err != nil {
-		http.Error(w, "Json error", http.StatusInternalServerError) 
+		http.Error(w, "Json error", http.StatusInternalServerError)
 	}
 }
 
