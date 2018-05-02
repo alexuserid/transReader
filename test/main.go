@@ -13,6 +13,15 @@ import (
 	"time"
 )
 
+type st struct {
+	k      string
+	v1, v2 int
+	status int
+}
+type bt struct {
+	Block, Tr int
+}
+
 var (
 	addr     = flag.String("address", "http://localhost:8080", "Server address for test")
 	dur      = flag.Duration("duration", 5*time.Second, "Test duration")
@@ -20,88 +29,89 @@ var (
 	n        = flag.Int("number", 10, "Test items number")
 )
 
-type st struct {
-	k      string
-	v1, v2 int
-}
-type bt struct {
-	Block, Tr int
-}
 
-func shuf(n *int, testFile *string) []st {
-	openf, err := os.Open(*testFile)
-	if err != nil {
-		log.Fatalf("os.Open: %v", err)
-	}
-	defer openf.Close()
-
-	gzReader, err := gzip.NewReader(openf)
-	if err != nil {
-		log.Fatalf("gzip.NewReader: %v", err)
-	}
-
+func RASample(gzReader *gzip.Reader, n *int) ([]st, error) {
 	var (
-		key              string
+		key string
 		val1, val2, i, j int
-		randMass         []st
+		arr []st
 	)
 	for {
 		_, err := fmt.Fscanln(gzReader, &key, &val1, &val2)
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			log.Fatalf("fmt.Fscanln: %v", err)
+			return nil, err
 		}
 
 		if i < *n {
-			randMass = append(randMass, st{key, val1, val2})
+			arr = append(arr, st{key, val1, val2, http.StatusOK})
 		} else {
 			j = rand.Intn(i)
 			if j < *n {
-				randMass[j] = st{key, val1, val2}
+				arr[j] = st{key, val1, val2, http.StatusOK}
 			}
 		}
 		i++
 	}
-	for _, value := range wrongMass {
-		j = rand.Intn(i)
-		if j < *n {
-			randMass = append(randMass, value)
-		}
-		i++
+	return arr, nil
+}
+
+func shuf(arr []st) []st {
+	warr := wareturner()
+	for _, v := range warr {
+		arr = append(arr, v)
 	}
-	return randMass
+	rand.Shuffle(len(arr), func(i, j int) {
+		arr[i], arr[j] = arr[j], arr[i]
+	})
+	return arr
 }
 
 func main() {
 	flag.Parse()
 
-	mix := shuf(n, testFile)
+	openf, err := os.Open(*testFile)
+	if err != nil {
+		log.Fatalf("os.Open: %v", err)
+	}
+	defer openf.Close()
+	gzReader, err := gzip.NewReader(openf)
+	if err != nil {
+		log.Fatalf("gzip.NewReader: %v", err)
+	}
+	arr, err := RASample(gzReader, n)
+	if err != nil {
+		log.Fatalf("fmt.Scanln: %v", err)
+	}
+	arr = shuf(arr)
 
 	timer := time.NewTimer(*dur)
-	var i int
+	log.Printf("Timer for %v is setted. Testing...\n", *dur)
 
+	var i int
 	for {
+		fmt.Print("\r", i, "r")
 		select {
 		case <-timer.C:
-			fmt.Printf("Timeout. Test was repeated %d times. Duration %v. %vrps.\n", i, *dur, float64(i)/dur.Seconds())
+			fmt.Println(i, "requests")
+			fmt.Printf("Timeout. Duration %v. %vrps.\n", *dur, float64(i)/dur.Seconds())
 			return
 		default:
-			for j, v := range mix {
+			for j, v := range arr {
 				resp, err := http.Get(*addr + "?t=" + v.k)
 				if err != nil {
 					log.Fatalf("http.Get: %v", err)
 				}
 
 				var dec bt
-				json.NewDecoder(resp.Body).Decode(&dec)
-
-				if (dec.Block != v.v1 || dec.Tr != v.v2) && v.v1 != 0 {
-					fmt.Printf("Wrong answer.\nTest %d: %q.\nServer answer is: %q.\nRight answer is: %q.\n", j, v.v1, dec, v.v2)
+				err = json.NewDecoder(resp.Body).Decode(&dec)
+				if err != nil && resp.StatusCode != v.status {
+					fmt.Printf("Wrong answer.\nTest %d: %q.\nServer answer is %q.\nTest answer is: %q.\n", j, v.v1, dec, http.StatusText(v.status))
 					return
 				}
-				i++
 			}
+			i++
 		}
 	}
 }

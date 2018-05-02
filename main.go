@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"encoding/hex"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -17,43 +18,52 @@ type bt struct {
 }
 type key [32]byte
 
-var m = make(map[key]bt)
+var (
+	transMap = make(map[key]bt)
+	port = flag.String("port", ":8080", "Server port")
+	file = flag.String("file", "tr.txt.gz", "File with transactions in .gzip format")
+)
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	trans := r.URL.Query().Get("t")
-	hTrans, _ := hex.DecodeString(trans)
-	var k key
-	copy(k[:], hTrans)
-
-	v, ok := m[k]
-	if !ok {
-		w.Write([]byte("Wrong key\n"))
+	hexTrans, err := hex.DecodeString(trans)
+	if err != nil {
+		http.Error(w, "The request is not in a hex format. Wrong key.", http.StatusBadRequest)
 		return
 	}
-	err := json.NewEncoder(w).Encode(v)
-	if err != nil {
-		log.Fatalf("json.Encode: %v", err)
+
+	var k32b key
+	copy(k32b[:], hexTrans)
+
+	v, ok := transMap[k32b]
+	if !ok {
+		http.Error(w, "Wrong key", http.StatusBadRequest)
+		return
 	}
-	w.Write([]byte("\n"))
+	err = json.NewEncoder(w).Encode(v)
+	if err != nil {
+		http.Error(w, "Json error", http.StatusInternalServerError) 
+	}
 }
 
 func main() {
-	f, err := os.Open("tr.txt.gz")
+	flag.Parse()
+	log.Println("Start reading data...")
+	f, err := os.Open(*file)
 	if err != nil {
 		log.Fatalf("os.Open: %v", err)
 	}
 	defer f.Close()
-
 	gz, err := gzip.NewReader(f)
 	if err != nil {
 		log.Fatalf("gzip.NewReader: %v", err)
 	}
 
 	var (
-		kk key
-		k  string
-		v1 uint32
-		v2 uint16
+		k32byte key
+		k       string
+		v1      uint32
+		v2      uint16
 	)
 
 	for {
@@ -64,14 +74,18 @@ func main() {
 		if err != nil {
 			log.Fatalf("fmt.Fscanln: %v", err)
 		}
-		hk, err := hex.DecodeString(k)
+		hexKey, err := hex.DecodeString(k)
 		if err != nil {
 			log.Fatalf("hex.Decode: %v", err)
 		}
-		copy(kk[:], hk)
-		m[kk] = bt{v1, v2}
+		copy(k32byte[:], hexKey)
+		transMap[k32byte] = bt{v1, v2}
 	}
+	log.Println("Succesful readed data. Launch server.")
 
 	http.HandleFunc("/", handler)
-	http.ListenAndServe(":8080", nil)
+	err = http.ListenAndServe(*port, nil)
+	if err != nil {
+		log.Fatalf("http.ListenAndServe: %v", err)
+	}
 }
