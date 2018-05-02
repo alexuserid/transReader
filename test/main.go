@@ -109,8 +109,8 @@ func main() {
 					fmt.Printf("Wrong answer.\nTest %d: %q.\nServer answer is %q.\nTest answer is: %q.\n", j, v.v1, dec, http.StatusText(v.status))
 					return
 				}
+				i++
 			}
-			i++
 		}
 	}
 }
