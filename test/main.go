@@ -29,7 +29,7 @@ var (
 	n        = flag.Int("number", 10, "Test items number")
 )
 
-func RASample(gzReader *gzip.Reader, n *int) ([]st, error) {
+func RASample(gzReader io.Reader, n *int) ([]st, error) {
 	var (
 		key              string
 		val1, val2, i, j int
@@ -56,16 +56,6 @@ func RASample(gzReader *gzip.Reader, n *int) ([]st, error) {
 	return arr, nil
 }
 
-func shuf(arr []st) []st {
-	warr := wareturner()
-	for _, v := range warr {
-		arr = append(arr, v)
-	}
-	rand.Shuffle(len(arr), func(i, j int) {
-		arr[i], arr[j] = arr[j], arr[i]
-	})
-	return arr
-}
 
 func main() {
 	flag.Parse()
@@ -75,7 +65,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("os.Open: %v", err)
 	}
-	defer openf.Close()
 	gzReader, err := gzip.NewReader(openf)
 	if err != nil {
 		log.Fatalf("gzip.NewReader: %v", err)
@@ -84,7 +73,15 @@ func main() {
 	if err != nil {
 		log.Fatalf("fmt.Scanln: %v", err)
 	}
-	arr = shuf(arr)
+	openf.Close()
+
+	warr := wareturner()
+	for _, v := range warr {
+		arr = append(arr, v)
+	}
+	rand.Shuffle(len(arr), func(i, j int) {
+		arr[i], arr[j] = arr[j], arr[i]
+	})
 
 	timer := time.NewTimer(*dur)
 	log.Printf("Timer for %v is setted. Testing...\n", *dur)
@@ -99,18 +96,30 @@ func main() {
 			fmt.Printf("Timeout. Duration %v. %vrps.\n", *dur, float64(i)/dur.Seconds())
 			return
 		default:
-			for j, v := range arr {
+			for _, v := range arr {
 				resp, err := http.Get(*addr + "?t=" + v.k)
 				if err != nil {
 					log.Fatalf("http.Get: %v", err)
 				}
+				defer resp.Body.Close()
+
+				if resp.StatusCode != v.status {
+					fmt.Printf("Wrong status.\nTest %q.\nServer status: %q.\nExpected status: %q", v.k, resp.Status, http.StatusText(v.status))
+					return
+				} else {
+					goto counter
+				}
 
 				err = json.NewDecoder(resp.Body).Decode(&dec)
-				if err != nil && resp.StatusCode != v.status {
-					fmt.Printf("Wrong answer.\nTest %d: %q.\nServer answer is %q.\nTest answer is: %q.\n", j, v.v1, dec, http.StatusText(v.status))
+				if  err != nil {
+					fmt.Printf("Wrong json.\nTest %q.\nServer js: %d.\nExpected js: %d %d", v.k, dec, v.v1, v.v2)
+					return
+				} else if dec.Block != v.v1 || dec.Tr != v.v2 {
+					fmt.Printf("Wrong answer.\nTest %q.\nServer answer: %q, %q.\nExpected answer: %q, %q", v.k, dec.Block, dec.Tr, v.v1, v.v2)
 					return
 				}
-				i++
+				counter: i++
+				resp.Body.Close()
 			}
 		}
 	}

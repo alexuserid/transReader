@@ -37,7 +37,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	v, ok := transMap[k32b]
 	if !ok {
-		http.Error(w, "Wrong key", http.StatusBadRequest)
+		http.Error(w, "Wrong key", http.StatusNotFound)
 		return
 	}
 	err = json.NewEncoder(w).Encode(v)
@@ -53,7 +53,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("os.Open: %v", err)
 	}
-	defer f.Close()
 	gz, err := gzip.NewReader(f)
 	if err != nil {
 		log.Fatalf("gzip.NewReader: %v", err)
@@ -81,6 +80,7 @@ func main() {
 		copy(k32byte[:], hexKey)
 		transMap[k32byte] = bt{v1, v2}
 	}
+	f.Close()
 	log.Println("Success. Launch server.")
 
 	http.HandleFunc("/", handler)
