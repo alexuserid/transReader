@@ -81,7 +81,7 @@ func main() {
 		copy(k32byte[:], hexKey)
 		transMap[k32byte] = bt{v1, v2}
 	}
-	log.Println("Succesful readed data. Launch server.")
+	log.Println("Success. Launch server.")
 
 	http.HandleFunc("/", handler)
 	err = http.ListenAndServe(*port, nil)
