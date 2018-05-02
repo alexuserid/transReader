@@ -48,7 +48,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	flag.Parse()
-	log.Println("Start reading data...")
+	log.Println("Reading data...")
 	f, err := os.Open(*file)
 	if err != nil {
 		log.Fatalf("os.Open: %v", err)

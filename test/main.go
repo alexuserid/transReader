@@ -69,6 +69,7 @@ func shuf(arr []st) []st {
 
 func main() {
 	flag.Parse()
+	log.Println("Reading data...")
 
 	openf, err := os.Open(*testFile)
 	if err != nil {
