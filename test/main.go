@@ -104,21 +104,18 @@ func main() {
 				defer resp.Body.Close()
 
 				if resp.StatusCode != v.status {
-					fmt.Printf("Wrong status.\nTest %d %q.\nServer status: %q.\nExpected status: %s %d\n", j, v.k, resp.Status, http.StatusText(v.status), v.status)
-					return
+					log.Printf("Wrong status.\nTest %d %q.\nServer status: %q.\nExpected status: %s %d\n", j, v.k, resp.Status, http.StatusText(v.status), v.status)
 				}
-
-				if resp.StatusCode == http.StatusOK {
-					if err = json.NewDecoder(resp.Body).Decode(&dec); err != nil {
-						fmt.Printf("Wrong json.\nTest %d %v.\nResult js: %v.\nExpected js: %d %d\n", j, v.k, err, v.v1, v.v2)
-						fmt.Println(v)
-						return
-					} else if dec.Block != v.v1 || dec.Tr != v.v2 {
-						fmt.Printf("Wrong answer.\nTest %d %q.\nServer answer: %d, %d.\nExpected answer: %d, %d\n", j, v.k, dec.Block, dec.Tr, v.v1, v.v2)
-						return
-					}
+				if resp.StatusCode != http.StatusOK {
+					goto counter
 				}
-				i++
+				if err = json.NewDecoder(resp.Body).Decode(&dec); err != nil {
+					log.Printf("Wrong json.\nTest %d %v.\nResult js: %v.\nExpected js: %d %d\n", j, v.k, err, v.v1, v.v2)
+				}
+				if dec.Block != v.v1 || dec.Tr != v.v2 {
+					log.Printf("Wrong answer.\nTest %d %q.\nServer answer: %d, %d.\nExpected answer: %d, %d\n", j, v.k, dec.Block, dec.Tr, v.v1, v.v2)
+				}
+				counter: i++
 				resp.Body.Close()
 			}
 		}
