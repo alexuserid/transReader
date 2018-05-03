@@ -97,6 +97,7 @@ func main() {
 			return
 		default:
 			for _, v := range arr {
+				i++
 				resp, err := http.Get(*addr + "?t=" + v.k)
 				if err != nil {
 					log.Fatalf("http.Get: %v", err)
@@ -107,7 +108,8 @@ func main() {
 					log.Printf("Wrong status.\nTest %d %q.\nServer status: %q.\nExpected status: %s %d\n", i, v.k, resp.Status, http.StatusText(v.status), v.status)
 				}
 				if resp.StatusCode != http.StatusOK {
-					goto counter
+					resp.Body.Close()
+					continue
 				}
 				if err = json.NewDecoder(resp.Body).Decode(&dec); err != nil {
 					log.Printf("Wrong json.\nTest %d %v.\nResult js: %v.\nExpected js: %d %d\n", i, v.k, err, v.v1, v.v2)
@@ -115,7 +117,6 @@ func main() {
 				if dec.Block != v.v1 || dec.Tr != v.v2 {
 					log.Printf("Wrong answer.\nTest %d %q.\nServer answer: %d, %d.\nExpected answer: %d, %d\n", i, v.k, dec.Block, dec.Tr, v.v1, v.v2)
 				}
-				counter: i++
 				resp.Body.Close()
 			}
 		}
